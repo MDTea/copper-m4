@@ -15,6 +15,7 @@ import {
 import { DOCUMENTS, pageUrl } from "@/lib/copper/documents";
 import { readInventory } from "@/lib/copper/inventory";
 import { PASSAGES } from "@/lib/copper/passages";
+import { runRefundAgent } from "@/lib/copper/refunds/agent";
 
 export type ProductList = {
   products: {
@@ -256,6 +257,15 @@ export const copperTools = {
       "Checks today's stock for a Copper product, for every color or just one.",
     inputSchema: checkAvailabilityInput,
     execute: async (input) => checkAvailability(input),
+  }),
+  hand_off_to_refund_agent: tool({
+    description:
+      "Hands a customer's refund request to the Refund agent, a separate agent that files it and reports back. Use it when a customer wants their money back for an order and has given an order number (like CSL-1001) and a reason. It can take a while: large refunds wait for a person to approve them.",
+    inputSchema: z.object({
+      orderId: z.string().describe("The order number, e.g. CSL-1001."),
+      reason: z.string().describe("Why the customer wants a refund."),
+    }),
+    execute: async ({ orderId, reason }) => runRefundAgent(orderId, reason),
   }),
   search_docs: tool({
     description:

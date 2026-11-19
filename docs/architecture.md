@@ -139,3 +139,16 @@ second agent, and a person approving the large ones.
 |---|---|---|
 | Page | `app/support/page.tsx` | The "Refund Console" title and nothing else yet, linked from the header as Support |
 | Chat panel | `components/copper/ask-copper.tsx` | With the `docked` prop it starts open and the page beside it stays clickable. It is the same single agent and tools as on the home page |
+
+## Module 4: Refunds
+
+**Summary:** Copper hands refund requests to a second agent, the Refund agent. Refunds at or under the auto-refund limit are paid by code; larger ones wait in the Refund Console on `/support` for a person to Approve or Reject.
+
+| Piece | Where | What it does |
+|---|---|---|
+| Orders, limit, requests | `lib/copper/refunds/store.ts` | In-memory store (resets on restart). `submitRefund` is the limit rule: at or under the limit is refunded at once, over it is `pending`. `decideRefund` is the person's Approve or Reject |
+| Refund agent | `lib/copper/refunds/agent.ts` | Own instructions and tools (`lookup_order`, `file_refund_request`), run with `callText` as `{ module: 4, feature: "refund-agent" }`. It waits (up to 2 minutes) for a person's decision and reports back |
+| Hand-off | `hand_off_to_refund_agent` in `lib/copper/assistant/tools.ts` | Copper's tool that runs the Refund agent and returns its report |
+| Console | `components/copper/refund-console.tsx`, `app/support/actions.ts` | Limit field, Waiting for approval list with Approve / Reject, orders table; refreshes every 2 seconds |
+
+**Decisions and trade-offs:** Code decides small refunds, a person decides large ones; the model decides neither. State is in server memory instead of a database, so on Vercel it can reset or differ between server instances.
