@@ -16,6 +16,7 @@ import { DOCUMENTS, pageUrl } from "@/lib/copper/documents";
 import { readInventory } from "@/lib/copper/inventory";
 import { PASSAGES } from "@/lib/copper/passages";
 import { runRefundAgent } from "@/lib/copper/refunds/agent";
+import { THANKS } from "@/lib/copper/refunds/messages";
 import { addFeedback } from "@/lib/copper/refunds/store";
 
 export type ProductList = {
@@ -270,7 +271,7 @@ export const copperTools = {
   }),
   submit_refund_feedback: tool({
     description:
-      "Saves optional feedback the customer chose to send after a refund request. Only call it when the customer actually gives feedback; never call it if they decline.",
+      "Saves optional feedback the customer chose to send after a refund request. Only call it when the customer actually gives feedback; never call it if they decline. Returns the thank-you reply to give the customer, word for word.",
     inputSchema: z.object({
       orderId: z.string().describe("The order number, e.g. CSL-1001."),
       feedback: z
@@ -280,7 +281,7 @@ export const copperTools = {
     }),
     execute: async ({ orderId, feedback }) => {
       addFeedback(orderId, feedback);
-      return { saved: true };
+      return { saved: true, reply: THANKS };
     },
   }),
   search_docs: tool({
