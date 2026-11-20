@@ -41,4 +41,5 @@ export const TOOL_LABELS: Record<string, string> = {
   check_availability: "Checking stock",
   search_docs: "Searching the documents",
   hand_off_to_refund_agent: "Handing off to the Refund agent",
+  submit_refund_feedback: "Saving your feedback",
 };

@@ -25,7 +25,7 @@ describe("Refund agent when the model fails", () => {
     callText.mockRejectedValue(new Error("quota exceeded"));
     const { runRefundAgent } = await import("@/lib/copper/refunds/agent");
     const result = await runRefundAgent("CSL-1006", "wrong color");
-    expect(result.report).toContain("has been processed");
+    expect(result.report).toContain("approved it");
     expect(result.report).toContain("$79.00");
   });
 
@@ -35,15 +35,15 @@ describe("Refund agent when the model fails", () => {
     callText.mockRejectedValue(new Error("quota exceeded"));
     const { runRefundAgent } = await import("@/lib/copper/refunds/agent");
     const result = await runRefundAgent("CSL-1004", "x");
-    expect(result.report).toContain("declined");
-    expect(result.report).toContain("No money was refunded");
+    expect(result.report).toContain("decided not to approve");
+    expect(result.report).toContain("no refund will be issued");
   });
 
   it("says no refund was made when nothing was filed", async () => {
     callText.mockRejectedValue(new Error("quota exceeded"));
     const { runRefundAgent } = await import("@/lib/copper/refunds/agent");
     const result = await runRefundAgent("CSL-1001", "x");
-    expect(result.report).toContain("No refund was made");
+    expect(result.report).toContain("no refund was made");
   });
 });
 
