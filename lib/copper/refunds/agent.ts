@@ -7,7 +7,7 @@ import { stepCountIs, tool } from "ai";
 import { z } from "zod";
 import { callText } from "@/lib/ai/call";
 import {
-  findOrder,
+  getConsoleState,
   getRequest,
   submitRefund,
   type RefundRequest,
@@ -18,9 +18,8 @@ const POLL_MS = 1_000;
 
 export const REFUND_INSTRUCTIONS = `You are the Refund agent for Copper State Labs. Copper, the shopping assistant, hands refund requests to you.
 You are given an order number and the customer's reason.
-1. Call lookup_order to confirm the order exists and is not already refunded.
-2. Call file_refund_request to file the refund. You never decide whether a refund is approved: the system and the support team do.
-3. Report the outcome in one or two plain sentences, using only what the tool returned: refunded (with the amount), or declined by the support team. If the order isn't found or was already refunded, say so.
+1. Call file_refund_request once to file the refund. It checks that the order exists and isn't already refunded. You never decide whether a refund is approved: the system and the support team do.
+2. Report the outcome in one or two plain sentences, using only what the tool returned: refunded (with the amount), or declined by the support team. If the order isn't found or was already refunded, say so.
 Never invent order details or promise a refund the tool didn't confirm.`;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -52,12 +51,6 @@ async function fileAndWait(orderId: string, reason: string) {
 }
 
 const refundTools = {
-  lookup_order: tool({
-    description: "Looks up an order by its number, e.g. CSL-1001.",
-    inputSchema: z.object({ orderId: z.string() }),
-    execute: async ({ orderId }) =>
-      findOrder(orderId) ?? { error: `No order ${orderId} was found.` },
-  }),
   file_refund_request: tool({
     description:
       "Files a refund request for an order. Small refunds go through immediately; large ones wait for a person's approval, and this tool waits for that decision before returning.",
@@ -68,22 +61,45 @@ const refundTools = {
 
 export type RefundHandoff = { agent: "refund"; report: string };
 
+/**
+ * What happened to this order's refund, in plain words, read from the store.
+ * Used when the model fails after the refund was already decided, so the
+ * customer still hears the real outcome.
+ */
+function reportFromStore(orderId: string): string {
+  const id = orderId.trim().toUpperCase();
+  const request = getConsoleState().requests.find((r) => r.orderId === id);
+  if (!request)
+    return "The Refund agent couldn't process this request right now. No refund was made. Please try again.";
+  if (request.status === "refunded")
+    return `The refund for order ${request.orderId} has been processed in the amount of $${request.amountUsd.toFixed(2)}.`;
+  if (request.status === "rejected")
+    return `The support team reviewed the refund for order ${request.orderId} and declined it. No money was refunded.`;
+  return `The refund for order ${request.orderId} is waiting for the support team to review it. No money has moved yet.`;
+}
+
 /** Runs the Refund agent for one request and returns its report. */
 export async function runRefundAgent(
   orderId: string,
   reason: string,
 ): Promise<RefundHandoff> {
-  const result = await callText(
-    { module: 4, feature: "refund-agent" },
-    {
-      instructions: REFUND_INSTRUCTIONS,
-      prompt: `Order number: ${orderId}\nCustomer's reason: ${reason}`,
-      tools: refundTools,
-      stopWhen: stepCountIs(4),
-    },
-  );
-  return {
-    agent: "refund",
-    report: result.text.trim() || "The Refund agent finished without a report.",
-  };
+  try {
+    const result = await callText(
+      { module: 4, feature: "refund-agent" },
+      {
+        instructions: REFUND_INSTRUCTIONS,
+        prompt: `Order number: ${orderId}\nCustomer's reason: ${reason}`,
+        tools: refundTools,
+        stopWhen: stepCountIs(3),
+      },
+    );
+    return {
+      agent: "refund",
+      report: result.text.trim() || reportFromStore(orderId),
+    };
+  } catch {
+    // The model failed (for example, a quota limit). The store still knows
+    // what was decided, so report that instead of failing.
+    return { agent: "refund", report: reportFromStore(orderId) };
+  }
 }

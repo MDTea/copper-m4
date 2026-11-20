@@ -25,6 +25,21 @@ const MAX_STEPS = 5;
 
 const SORRY = "Sorry, something went wrong on my end. Please try again.";
 
+/**
+ * If the model fails after the Refund agent already finished, tell the
+ * customer what the Refund agent reported instead of a generic apology.
+ */
+function refundReport(progress: Progress): string | null {
+  const step = progress.steps.find(
+    (s): s is ToolStep =>
+      s.type === "tool" &&
+      s.name === "hand_off_to_refund_agent" &&
+      s.state === "done",
+  );
+  const report = (step?.output as { report?: unknown } | undefined)?.report;
+  return typeof report === "string" && report.trim() ? report : null;
+}
+
 export async function askCopper({
   messages,
   useTools,
@@ -115,10 +130,12 @@ export async function askCopper({
         update(snapshot());
       }
       progress.status = "done";
-      if (!progress.reply.trim()) progress.reply = SORRY;
+      if (!progress.reply.trim())
+        progress.reply = refundReport(progress) ?? SORRY;
     } catch {
       progress.status = "error";
-      if (!progress.reply.trim()) progress.reply = SORRY;
+      if (!progress.reply.trim())
+        progress.reply = refundReport(progress) ?? SORRY;
     }
     done(snapshot());
   })();
