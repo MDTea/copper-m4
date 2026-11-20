@@ -148,6 +148,8 @@ second agent, and a person approving the large ones.
 |---|---|---|
 | Orders, limit, requests | `lib/copper/refunds/store.ts` | In-memory store (resets on restart). `submitRefund` is the limit rule: at or under the limit is refunded at once, over it is `pending`. `decideRefund` is the person's Approve or Reject |
 | Refund agent | `lib/copper/refunds/agent.ts` | Own instructions and tools (`lookup_order`, `file_refund_request`), run with `callText` as `{ module: 4, feature: "refund-agent" }`. It waits (up to 2 minutes) for a person's decision and reports back |
+| Customer messages | `lib/copper/refunds/messages.ts` | Fixed wording built in code: "Our management reviewed your refund request and {decision}. Have a great rest of your day!" It never mentions the limit. After a refund it offers products and plans priced within $50 of the refunded amount; after any outcome it asks, optionally, for feedback |
+| Feedback | `submit_refund_feedback` in `lib/copper/assistant/tools.ts`, `addFeedback` in the store | Saves feedback the customer chooses to send; shown in the console's Customer feedback card. Declining saves nothing |
 | Hand-off | `hand_off_to_refund_agent` in `lib/copper/assistant/tools.ts` | Copper's tool that runs the Refund agent and returns its report |
 | Console | `components/copper/refund-console.tsx`, `app/support/actions.ts` | Limit field, Waiting for approval list with Approve / Reject, orders table; refreshes every 2 seconds |
 

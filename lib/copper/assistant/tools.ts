@@ -16,6 +16,7 @@ import { DOCUMENTS, pageUrl } from "@/lib/copper/documents";
 import { readInventory } from "@/lib/copper/inventory";
 import { PASSAGES } from "@/lib/copper/passages";
 import { runRefundAgent } from "@/lib/copper/refunds/agent";
+import { addFeedback } from "@/lib/copper/refunds/store";
 
 export type ProductList = {
   products: {
@@ -266,6 +267,21 @@ export const copperTools = {
       reason: z.string().describe("Why the customer wants a refund."),
     }),
     execute: async ({ orderId, reason }) => runRefundAgent(orderId, reason),
+  }),
+  submit_refund_feedback: tool({
+    description:
+      "Saves optional feedback the customer chose to send after a refund request. Only call it when the customer actually gives feedback; never call it if they decline.",
+    inputSchema: z.object({
+      orderId: z.string().describe("The order number, e.g. CSL-1001."),
+      feedback: z
+        .string()
+        .min(1)
+        .describe("The customer's feedback, in their words."),
+    }),
+    execute: async ({ orderId, feedback }) => {
+      addFeedback(orderId, feedback);
+      return { saved: true };
+    },
   }),
   search_docs: tool({
     description:

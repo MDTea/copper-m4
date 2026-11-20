@@ -161,6 +161,26 @@ export function RefundConsole() {
         </CardContent>
       </Card>
 
+      <Card data-testid="customer-feedback">
+        <CardHeader>
+          <CardTitle>Customer feedback ({data.feedback.length})</CardTitle>
+          <CardDescription>
+            Optional notes customers chose to send after a refund request.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {data.feedback.length === 0 && (
+            <p className="text-muted-foreground text-sm">No feedback yet.</p>
+          )}
+          {data.feedback.map((f) => (
+            <div key={f.id} className="rounded-lg border p-3 text-sm">
+              <p className="font-semibold">{f.orderId}</p>
+              <p>{f.text}</p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Orders</CardTitle>

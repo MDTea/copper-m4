@@ -27,10 +27,18 @@ export type RefundRequest = {
   createdAt: string;
 };
 
+export type Feedback = {
+  id: string;
+  orderId: string;
+  text: string;
+  createdAt: string;
+};
+
 export type ConsoleState = {
   limitUsd: number;
   orders: Order[];
   requests: RefundRequest[];
+  feedback: Feedback[];
 };
 
 const DEFAULT_LIMIT_USD = 100;
@@ -101,6 +109,7 @@ function fresh(): ConsoleState {
     limitUsd: DEFAULT_LIMIT_USD,
     orders: structuredClone(SEED_ORDERS),
     requests: [],
+    feedback: [],
   };
 }
 
@@ -183,4 +192,17 @@ export function decideRefund(
     } else request.status = "rejected";
   }
   return getConsoleState();
+}
+
+/** Optional feedback a customer chose to send after their refund request. */
+export function addFeedback(orderId: string, text: string): Feedback {
+  const s = state();
+  const entry: Feedback = {
+    id: `FB-${s.feedback.length + 1}`,
+    orderId: orderId.trim().toUpperCase(),
+    text: text.trim(),
+    createdAt: new Date().toISOString(),
+  };
+  s.feedback.unshift(entry);
+  return structuredClone(entry);
 }
